@@ -265,8 +265,8 @@ async function calculateElo(matchId) {
                     }
                 }
 
-                let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 400));
-                let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 400));
+                let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 850));
+                let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 850));
 
                 console.log("Probabilidad" + " " + probabilidad1 + " " + probabilidad2);
 
