@@ -145,39 +145,39 @@ async function addMatchToDatabase(
     const teamPlayerInsertions = [
         ...(Array.isArray(team1Players)
             ? team1Players.map((player_id) => ({
-                    team_id: team1_id,
-                    player_id,
-                    position: setsData.map((set) => {
-                        const pos = set.team1Positions.indexOf(player_id.toString());
-                        return pos === 0
-                            ? "A"
-                            : pos === 1
+                team_id: team1_id,
+                player_id,
+                position: setsData.map((set) => {
+                    const pos = set.team1Positions.indexOf(player_id.toString());
+                    return pos === 0
+                        ? "A"
+                        : pos === 1
                             ? "O"
                             : pos === 2 || pos === 3
-                            ? "P"
-                            : pos === 4 || pos === 5
-                            ? "C"
-                            : "";
-                    }),
-                }))
+                                ? "P"
+                                : pos === 4 || pos === 5
+                                    ? "C"
+                                    : "";
+                }),
+            }))
             : []),
         ...(Array.isArray(team2Players)
             ? team2Players.map((player_id) => ({
-                    team_id: team2_id,
-                    player_id,
-                    position: setsData.map((set) => {
-                        const pos = set.team2Positions.indexOf(player_id.toString());
-                        return pos === 0
-                            ? "A"
-                            : pos === 1
+                team_id: team2_id,
+                player_id,
+                position: setsData.map((set) => {
+                    const pos = set.team2Positions.indexOf(player_id.toString());
+                    return pos === 0
+                        ? "A"
+                        : pos === 1
                             ? "O"
                             : pos === 2 || pos === 3
-                            ? "P"
-                            : pos === 4 || pos === 5
-                            ? "C"
-                            : "";
-                    }),
-                }))
+                                ? "P"
+                                : pos === 4 || pos === 5
+                                    ? "C"
+                                    : "";
+                }),
+            }))
             : []),
     ];
     console.log(
@@ -275,9 +275,9 @@ async function calculateElo(matchId) {
 
                 for (let j = 0; j <= playerData.length - 1; j++) {
                     let correccion = 0;
-                    if (j <= 5) {
+                    if (sets[k].winner_known === 1) {
                         correccion = Math.pow(team1_score / team2_score, 0.20);
-                    } else if (j > 5) {
+                    } else if (sets[k].winner_known === 2) {
                         correccion = Math.pow(team2_score / team1_score, 0.20);
                     } else {
                         console.log("Error en correccion");
