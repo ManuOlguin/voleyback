@@ -106,7 +106,7 @@ app.post("/api/addMatch", async (req, res) => {
 
 app.get("/pruebita", async (req, res) => {
     try {
-        await calculateElo(13);
+        await calculateElo(48);
         res.send("Elo calculation completed");
     } catch (error) {
         res.status(500).send(error.message);
@@ -237,10 +237,6 @@ async function calculateElo(matchId) {
 
     console.log("Sets:", sets);
 
-    const juanito = data && data.length > 0
-        ? data.flatMap((team) => team.team_player.map((tp) => tp.players))
-        : [];
-
     if (data && data.length > 0) {
         if (sets) {
             const playerData = data && data.length > 0
@@ -265,10 +261,10 @@ async function calculateElo(matchId) {
                     }
                 }
 
-                let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 760));
-                let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 760));
+                let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 600));
+                let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 600));
 
-                console.log("Probabilidad" + " " + probabilidad1 + " " + probabilidad2);
+                console.log("Probabilidad" + " " + probabilidad1 + " " + probabilidad2 + " con dif " + Math.abs(promedio1 - promedio2) + " ");
 
                 let team1_score = sets[k].team1_score !== null ? sets[k].team1_score : 1;
                 let team2_score = sets[k].team2_score !== null ? sets[k].team2_score : 1;
@@ -276,17 +272,38 @@ async function calculateElo(matchId) {
                 for (let j = 0; j <= playerData.length - 1; j++) {
                     let correccion = 0;
                     if (sets[k].winner_known === 1) {
-                        correccion = Math.pow(team1_score / team2_score, 0.20);
+                        correccion = Math.pow(team1_score / team2_score, 0.18);
                     } else if (sets[k].winner_known === 2) {
-                        correccion = Math.pow(team2_score / team1_score, 0.20);
+                        correccion = Math.pow(team2_score / team1_score, 0.18);
                     } else {
                         console.log("Error en correccion");
                         break;
                     }
                     console.log("Team scores:", team1_score, team2_score);
                     console.log("Correccion:", correccion);
-                    let w = 0.0055;
-                    let n = (7 + (20 - 7) * 1 / (1 + w * Math.abs(promedio1 - promedio2))) * correccion;
+
+                    let n = 0;
+                    let w = 0.035;
+
+                    switch (true) {
+                        case promedio1 === promedio2:
+                            n = 14;
+                            break;
+                        case promedio1 > promedio2 && sets[k].winner_known === 1:
+                            n = 21 - (21 - 7) * (1 - Math.exp(-w * Math.abs(promedio1 - promedio2)));
+                            break;
+                        case promedio1 > promedio2 && sets[k].winner_known === 2:
+                            n = 7 + (21 - 7) * (1 - Math.exp(-w * Math.abs(promedio1 - promedio2)));
+                            break;
+                        case promedio1 < promedio2 && sets[k].winner_known === 1:
+                            n = 7 + (21 - 7) * (1 - Math.exp(-w * Math.abs(promedio1 - promedio2)));
+                            break;
+                        case promedio1 < promedio2 && sets[k].winner_known === 2:
+                            n = 21 - (21 - 7) * (1 - Math.exp(-w * Math.abs(promedio1 - promedio2)));
+                            break;
+                        default:
+                            console.log("Error en n");
+                    }
                     console.log("N" + " " + n);
                     let tuvieja = playerData[j].elo;
                     switch (true) {
@@ -297,7 +314,7 @@ async function calculateElo(matchId) {
                             playerData[j].elo += n * (0 - probabilidad2);
                             break;
                         case j <= 5 && sets[k].winner_known === 2:
-                            playerData[j].elo += n * (0 - probabilidad1);
+                            playerData[j].elo += n * (0 - probabilidad1)
                             break;
                         case j > 5 && sets[k].winner_known === 2:
                             playerData[j].elo += n * (1 - probabilidad2);
