@@ -265,8 +265,8 @@ async function calculateElo(matchId) {
                     }
                 }
 
-                let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 850));
-                let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 850));
+                let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 760));
+                let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 760));
 
                 console.log("Probabilidad" + " " + probabilidad1 + " " + probabilidad2);
 
@@ -285,7 +285,7 @@ async function calculateElo(matchId) {
                     }
                     console.log("Team scores:", team1_score, team2_score);
                     console.log("Correccion:", correccion);
-                    let w = 0.01;
+                    let w = 0.0055;
                     let n = (7 + (20 - 7) * 1 / (1 + w * Math.abs(promedio1 - promedio2))) * correccion;
                     console.log("N" + " " + n);
                     let tuvieja = playerData[j].elo;
