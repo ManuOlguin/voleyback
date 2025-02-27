@@ -155,7 +155,7 @@ app.post("/api/addMatch", async (req, res) => {
 
 app.get("/pruebita", async (req, res) => {
     try {
-        await calculateElo(13);
+        await calculateElo(48);
         res.send("Elo calculation completed");
     } catch (error) {
         res.status(500).send(error.message);
@@ -194,39 +194,39 @@ async function addMatchToDatabase(
     const teamPlayerInsertions = [
         ...(Array.isArray(team1Players)
             ? team1Players.map((player_id) => ({
-                    team_id: team1_id,
-                    player_id,
-                    position: setsData.map((set) => {
-                        const pos = set.team1Positions.indexOf(player_id.toString());
-                        return pos === 0
-                            ? "A"
-                            : pos === 1
+                team_id: team1_id,
+                player_id,
+                position: setsData.map((set) => {
+                    const pos = set.team1Positions.indexOf(player_id.toString());
+                    return pos === 0
+                        ? "A"
+                        : pos === 1
                             ? "O"
                             : pos === 2 || pos === 3
-                            ? "P"
-                            : pos === 4 || pos === 5
-                            ? "C"
-                            : "";
-                    }),
-                }))
+                                ? "P"
+                                : pos === 4 || pos === 5
+                                    ? "C"
+                                    : "";
+                }),
+            }))
             : []),
         ...(Array.isArray(team2Players)
             ? team2Players.map((player_id) => ({
-                    team_id: team2_id,
-                    player_id,
-                    position: setsData.map((set) => {
-                        const pos = set.team2Positions.indexOf(player_id.toString());
-                        return pos === 0
-                            ? "A"
-                            : pos === 1
+                team_id: team2_id,
+                player_id,
+                position: setsData.map((set) => {
+                    const pos = set.team2Positions.indexOf(player_id.toString());
+                    return pos === 0
+                        ? "A"
+                        : pos === 1
                             ? "O"
                             : pos === 2 || pos === 3
-                            ? "P"
-                            : pos === 4 || pos === 5
-                            ? "C"
-                            : "";
-                    }),
-                }))
+                                ? "P"
+                                : pos === 4 || pos === 5
+                                    ? "C"
+                                    : "";
+                }),
+            }))
             : []),
     ];
     console.log(
