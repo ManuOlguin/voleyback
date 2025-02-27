@@ -70,6 +70,55 @@ app.get("/api/fullMatches", async (req, res) => {
     }
 });
 
+app.post("/recalcular", async (req, res) => {
+    try {
+        console.log("Request body:", req.body);
+        const { seasonId } = req.body;
+
+        let { data: matchIds, error: matchIdsError } = await supabase
+            .from("matches")
+            .select("id")
+            .eq("season_id", seasonId);
+
+        if (matchIdsError) throw matchIdsError;
+
+        if (!Array.isArray(matchIds)) {
+            throw new Error("matchIds is not an array");
+        }
+
+        const { data: setIds, error: setIdsError } = await supabase
+            .from("sets")
+            .select("id")
+            .in("match_id", matchIds.map(match => match.id));
+
+        if (setIdsError) throw setIdsError;
+
+        let { error: deleteEloHistoryError } = await supabase
+            .from("elo_history")
+            .delete()
+            .in("set_id", setIds.map(set => set.id));
+
+        if (deleteEloHistoryError) throw deleteEloHistoryError;
+
+        const { error: resetEloError } = await supabase
+            .from("players")
+            .update({ elo: 1000 })
+            .neq("elo", 1000);
+
+        if (resetEloError) throw resetEloError;
+
+        for (const matchId of matchIds) {
+            console.log("Recalculating ELO for match ID:", matchId.id);
+            await calculateElo(matchId.id);
+        }
+
+        res.send("Elo calculations completed for all matches");
+    } catch (error) {
+        console.error("Error in recalculating ELO:", error);
+        res.status(500).send(error.message);
+    }
+});
+
 app.get("/api/fullPlayers", async (req, res) => {
     try {
         let { data: players, error } = await supabase.from("players").select("*");
@@ -237,10 +286,6 @@ async function calculateElo(matchId) {
 
     console.log("Sets:", sets);
 
-    const juanito = data && data.length > 0
-        ? data.flatMap((team) => team.team_player.map((tp) => tp.players))
-        : [];
-
     if (data && data.length > 0) {
         if (sets) {
             const playerData = data && data.length > 0
@@ -265,28 +310,49 @@ async function calculateElo(matchId) {
                     }
                 }
 
-                let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 400));
-                let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 400));
+                let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 600));
+                let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 600));
 
-                console.log("Probabilidad" + " " + probabilidad1 + " " + probabilidad2);
+                console.log("Probabilidad" + " " + probabilidad1 + " " + probabilidad2 + " con dif " + Math.abs(promedio1 - promedio2) + " ");
 
                 let team1_score = sets[k].team1_score !== null ? sets[k].team1_score : 1;
                 let team2_score = sets[k].team2_score !== null ? sets[k].team2_score : 1;
 
                 for (let j = 0; j <= playerData.length - 1; j++) {
                     let correccion = 0;
-                    if (j <= 5) {
-                        correccion = Math.pow(team1_score / team2_score, 0.20);
-                    } else if (j > 5) {
-                        correccion = Math.pow(team2_score / team1_score, 0.20);
+                    if (sets[k].winner_known === 1) {
+                        correccion = Math.pow(team1_score / team2_score, 0.18);
+                    } else if (sets[k].winner_known === 2) {
+                        correccion = Math.pow(team2_score / team1_score, 0.18);
                     } else {
                         console.log("Error en correccion");
                         break;
                     }
                     console.log("Team scores:", team1_score, team2_score);
                     console.log("Correccion:", correccion);
-                    let w = 0.01;
-                    let n = (7 + (20 - 7) * 1 / (1 + w * Math.abs(promedio1 - promedio2))) * correccion;
+
+                    let n = 0;
+                    let w = 0.035;
+
+                    switch (true) {
+                        case promedio1 === promedio2:
+                            n = 14;
+                            break;
+                        case promedio1 > promedio2 && sets[k].winner_known === 1:
+                            n = 21 - (21 - 7) * (1 - Math.exp(-w * Math.abs(promedio1 - promedio2)));
+                            break;
+                        case promedio1 > promedio2 && sets[k].winner_known === 2:
+                            n = 7 + (21 - 7) * (1 - Math.exp(-w * Math.abs(promedio1 - promedio2)));
+                            break;
+                        case promedio1 < promedio2 && sets[k].winner_known === 1:
+                            n = 7 + (21 - 7) * (1 - Math.exp(-w * Math.abs(promedio1 - promedio2)));
+                            break;
+                        case promedio1 < promedio2 && sets[k].winner_known === 2:
+                            n = 21 - (21 - 7) * (1 - Math.exp(-w * Math.abs(promedio1 - promedio2)));
+                            break;
+                        default:
+                            console.log("Error en n");
+                    }
                     console.log("N" + " " + n);
                     let tuvieja = playerData[j].elo;
                     switch (true) {
@@ -297,7 +363,7 @@ async function calculateElo(matchId) {
                             playerData[j].elo += n * (0 - probabilidad2);
                             break;
                         case j <= 5 && sets[k].winner_known === 2:
-                            playerData[j].elo += n * (0 - probabilidad1);
+                            playerData[j].elo += n * (0 - probabilidad1)
                             break;
                         case j > 5 && sets[k].winner_known === 2:
                             playerData[j].elo += n * (1 - probabilidad2);
