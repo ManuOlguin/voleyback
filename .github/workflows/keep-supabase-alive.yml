@@ -1,0 +1,12 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    - cron: "0 0 */3 * *"  # Runs every 3 days at midnight UTC
+
+jobs:
+  ping_supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send request to Vercel API
+        run: curl -X GET "https://voleyback.vercel.app/api/keepalive"
