@@ -70,8 +70,13 @@ app.get("/api/fullMatches", async (req, res) => {
     }
 });
 
-app.get("/api/keepalive", (req, res) => {
-    res.send("Backend is running!");
+app.get("/api/keepalive", async (req, res) => {
+    const { data, error } = await supabase.from('players').select('*').limit(1);
+    if (error) {
+      console.error('Error keeping Supabase alive:', error);
+    } else {
+      console.log('Supabase is alive:', data);
+    }
 });
 
 app.post("/recalcular", async (req, res) => {
