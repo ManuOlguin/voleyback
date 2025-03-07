@@ -74,8 +74,10 @@ app.get("/api/keepalive", async (req, res) => {
     const { data, error } = await supabase.from('players').select('*').limit(1);
     if (error) {
       console.error('Error keeping Supabase alive:', error);
+        res.status(500).send(error.message);
     } else {
       console.log('Supabase is alive:', data);
+        res.status(200).send('Supabase is alive');
     }
 });
 
