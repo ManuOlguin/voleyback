@@ -70,6 +70,10 @@ app.get("/api/fullMatches", async (req, res) => {
     }
 });
 
+app.get("/api/keepalive", (req, res) => {
+    res.send("Backend is running!");
+});
+
 app.post("/recalcular", async (req, res) => {
     try {
         console.log("Request body:", req.body);
