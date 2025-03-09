@@ -70,6 +70,23 @@ app.get("/api/fullMatches", async (req, res) => {
     }
 });
 
+app.post("/api/addPlayer", async (req, res) => {
+    try {
+        const { name, prota } = req.body;
+        const { data, error } = await supabase
+            .from("players")
+            .insert([{ name, elo: 1000, prota }])
+            .select();
+
+        if (error) throw error;
+
+        res.status(201).json(data);
+    } catch (error) {
+        console.error("Error adding player:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get("/api/keepalive", async (req, res) => {
     const { data, error } = await supabase.from('players').select('*').limit(1);
     if (error) {
