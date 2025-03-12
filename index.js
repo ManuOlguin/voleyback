@@ -50,6 +50,7 @@ app.get("/api/fullMatches", async (req, res) => {
                 teams (
                     id, 
                     team_number,
+                    eloAvg,
                     team_player (
                         player_id,
                         players (id, name, elo)
@@ -313,7 +314,23 @@ async function calculateElo(matchId) {
         .order("id", { ascending: true });
 
     console.log("Sets:", sets);
+    console.log("Team1:", data[0].team_player);
+    console.log("Team2:", data[1].team_player);
 
+    let promedioTeam1 = 0;
+    let promedioTeam2 = 0;
+    const playerData2 = data && data.length > 0
+    ? data.flatMap((team) => team.team_player.map((tp) => tp.players))
+    : [];
+    for (let j = 0; j <= playerData2.length - 1; j++) {
+        if (j <= 5) {
+            promedioTeam1 += playerData2[j].elo / 6;
+            console.log("Equipo " + 1 + " " + playerData2[j].elo);
+        } else if (j > 5) {
+            promedioTeam2 += playerData2[j].elo / 6;
+            console.log("Equipo " + 2 + " " + playerData2[j].elo);
+        }
+    }
     if (data && data.length > 0) {
         if (sets) {
             const playerData = data && data.length > 0
@@ -338,10 +355,11 @@ async function calculateElo(matchId) {
                     }
                 }
 
+
                 let probabilidad1 = 1 / (1 + Math.pow(10, (-promedio2 + promedio1) / 600));
                 let probabilidad2 = 1 / (1 + Math.pow(10, (-promedio1 + promedio2) / 600));
 
-                console.log("Probabilidad" + " " + probabilidad1 + " " + probabilidad2 + " con dif " + Math.abs(promedio1 - promedio2) + " ");
+                //console.log("Probabilidad" + " " + probabilidad1 + " " + probabilidad2 + " con dif " + Math.abs(promedio1 - promedio2) + " ");
 
                 let team1_score = sets[k].team1_score !== null ? sets[k].team1_score : 1;
                 let team2_score = sets[k].team2_score !== null ? sets[k].team2_score : 1;
@@ -356,8 +374,8 @@ async function calculateElo(matchId) {
                         console.log("Error en correccion");
                         break;
                     }
-                    console.log("Team scores:", team1_score, team2_score);
-                    console.log("Correccion:", correccion);
+                    //console.log("Team scores:", team1_score, team2_score);
+                    //console.log("Correccion:", correccion);
 
                     let n = 0;
                     let w = 0.035;
@@ -381,7 +399,7 @@ async function calculateElo(matchId) {
                         default:
                             console.log("Error en n");
                     }
-                    console.log("N" + " " + n);
+                    //console.log("N" + " " + n);
                     let tuvieja = playerData[j].elo;
                     switch (true) {
                         case j <= 5 && sets[k].winner_known === 1:
@@ -402,7 +420,7 @@ async function calculateElo(matchId) {
                     }
 
                     if (j !== 5) {
-                        console.log(
+                        /*console.log(
                             "El jugador: " +
                             playerData[j].name +
                             " con Equipo: " +
@@ -415,7 +433,7 @@ async function calculateElo(matchId) {
                             (k + 1) +
                             " con diferencia de elo " +
                             (playerData[j].elo - tuvieja)
-                        );
+                        );*/
                     }
                     playerEloChanges.push({
                         playerId: playerData[j].id,
@@ -437,6 +455,20 @@ async function calculateElo(matchId) {
                     change: playerEloChanges.find(playerEloChanges => playerEloChanges.playerId === player.id)?.eloChange ?? 0,
                 }));
 
+                const { error: updateTeamError } = await supabase
+                    .from("teams")
+                    .update({ eloAvg: promedioTeam1 })
+                    .eq("id", data[0].id);
+
+                if (updateTeamError) throw updateTeamError;
+                console.log("Promedio team 1:", promedioTeam1);
+                const { error: updateTeam2Error } = await supabase
+                    .from("teams")
+                    .update({ eloAvg: promedioTeam2 })
+                    .eq("id", data[1].id);
+
+                if (updateTeam2Error) throw updateTeam2Error;
+
                 const { error: eloHistoryError } = await supabase
                     .from("elo_history")
                     .insert(eloHistoryInsertions);
@@ -444,9 +476,9 @@ async function calculateElo(matchId) {
                 if (eloHistoryError) throw eloHistoryError;
             }
             for (let j = 0; j < playerData.length; j++) {
-                console.log(
+                /*console.log(
                     ` ELO DE :) ${playerData[j].name}: ${playerData[j].elo}`
-                );
+                );*/
             }
             const playerUpdates = playerEloChangesGlobal.map(change => ({
                 id: change.playerId,
@@ -458,7 +490,7 @@ async function calculateElo(matchId) {
                 .upsert(playerUpdates, { onConflict: "id" });
 
             if (updateError) throw updateError;
-            console.log("Player elo changes:", playerEloChangesGlobal);
+            //console.log("Player elo changes:", playerEloChangesGlobal);
         }
     } else {
         throw new Error(
